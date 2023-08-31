@@ -26,6 +26,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "@react-native-voice/voice",
+        {
+          "microphonePermission": "CUSTIOM: Allow $(PRODUCT_NAME) to access your microphone?",
+          "speechRecognitionPermission": "CUSTIOM: Allow $(PRODUCT_NAME) to access your speech recognition?"
+        }
+      ]
+    ]
   }
 }

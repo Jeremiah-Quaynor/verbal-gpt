@@ -1,11 +1,41 @@
-import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { Button, Pressable, StyleSheet, Text, View } from "react-native";
+import { useVoiceRecognition } from "./hooks/useVoiceRecognition";
+import { fetchAudio } from "./utils/fetchAudio";
+import * as FileSystem from "expo-file-system";
+import { Audio } from "expo-av";
+
+Audio.setAudioModeAsync({
+  allowsRecordingIOS: false,
+  staysActiveInBackground: false,
+  playsInSilentModeIOS: true,
+  shouldDuckAndroid: true,
+  playThroughEarpieceAndroid: false,
+});
 
 export default function App() {
   const [borderColor, setBorderColor] = useState<"lightgray" | "lightgreen">(
     "lightgray"
   );
+
+  const { state, startRecognizing, stopRecognizing, destroyRecognizing } =
+    useVoiceRecognition();
+
+  const handleSubmit = async () => {
+    if (!state.results[0]) return;
+    try {
+      const audioBlob = await fetchAudio(state.results[0]);
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        if (e.target && e.target.result === "string") {
+          const audioData = e.target.result.split(",")[1];
+        }
+      };
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -48,9 +78,11 @@ export default function App() {
         }}
         onPressIn={() => {
           setBorderColor("lightgreen");
+          startRecognizing();
         }}
         onPressOut={() => {
           setBorderColor("lightgray");
+          stopRecognizing();
         }}
       >
         <Text>Hold to Speak</Text>
