@@ -4,6 +4,8 @@ import { useVoiceRecognition } from "./hooks/useVoiceRecognition";
 import { fetchAudio } from "./utils/fetchAudio";
 import * as FileSystem from "expo-file-system";
 import { Audio } from "expo-av";
+import { writeAudioToFile } from "./utils/writeAudioToFile";
+import { playFromPath } from "./utils/playFromPath";
 
 Audio.setAudioModeAsync({
   allowsRecordingIOS: false,
@@ -17,9 +19,24 @@ export default function App() {
   const [borderColor, setBorderColor] = useState<"lightgray" | "lightgreen">(
     "lightgray"
   );
+  const [selectedLanguage, setSelectedLanguage] = useState("en-US");
+  const [path, setPath] = useState<string>("");
 
   const { state, startRecognizing, stopRecognizing, destroyRecognizing } =
     useVoiceRecognition();
+
+    const listFiles = async () => {
+      try {
+        const result = await FileSystem.readDirectoryAsync(FileSystem.documentDirectory!)
+        if(result.length > 0) {
+          const filename = result[0]
+          const pathe = FileSystem.documentDirectory + filename
+          setPath(pathe)
+        }
+      } catch (error) {
+        console.log(error)
+      }
+    }
 
   const handleSubmit = async () => {
     if (!state.results[0]) return;
@@ -30,8 +47,17 @@ export default function App() {
       reader.onload = async (e) => {
         if (e.target && e.target.result === "string") {
           const audioData = e.target.result.split(",")[1];
+
+          // save audio to file
+          const pat = await writeAudioToFile(audioData);
+          setPath(pat);
+
+          // play audio
+          await playFromPath(pat);
+          destroyRecognizing();
         }
       };
+      reader.readAsDataURL(audioBlob);
     } catch (e) {
       console.error(e);
     }
@@ -65,7 +91,7 @@ export default function App() {
           fontSize: 17,
         }}
       >
-        Your message:
+        Your message: {JSON.stringify(state, null, 2)}
       </Text>
       <Pressable
         style={{
@@ -83,11 +109,17 @@ export default function App() {
         onPressOut={() => {
           setBorderColor("lightgray");
           stopRecognizing();
+          handleSubmit();
         }}
       >
         <Text>Hold to Speak</Text>
       </Pressable>
-      <Button title="Replay last message" onPress={() => {}} />
+      <Button
+        title="Replay last message"
+        onPress={async() => {
+          await playFromPath(path);
+        }}
+      />
     </View>
   );
 }
